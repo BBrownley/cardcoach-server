@@ -95,4 +95,67 @@ usersRouter.post("/", async (req, res) => {
   }
 });
 
+/*
+
+POST /users/login
+
+Handles logging a user into the system.
+Makes a call to the users model to carry out database operations.
+
+if successful, returns an empty object
+
+if unsuccessful, returns error object with key indicating affected field, and value representing the error message.
+
+*/
+
+usersRouter.post("/login", async (req, res) => {
+  const { username, password } = req.body;
+
+  // server-side validation
+  let errors = {};
+  let isValid = true;
+
+  // Check for empty inputs
+  if (!username) {
+    errors.username = "Username is required";
+    isValid = false;
+  }
+
+  if (!password) {
+    errors.password = "Password is required";
+    isValid = false;
+  }
+
+  // invalid login, send back err object
+  if (!isValid) {
+    res.status(422).json(errors);
+  }
+
+  let userRow;
+
+  // login may be valid, check credentials against database entries
+  try {
+    userRow = await usersModel.findUserByUsername(username);
+
+    const userHashedPW = userRow[0].hashed_password;
+
+    const matchesPW = await bcrypt.compare(password, userHashedPW);
+
+    if (matchesPW) { // password hash matches actual password
+      const { id, username, email } = userRow[0];
+
+      return res.status(200).json({ id, username, email });
+    }
+
+    errors.password = "Password is incorrect";
+
+    res.status(422).json(errors);
+  } catch (err) {
+    // no user found relates to a username error
+    errors.username = err.message;
+
+    res.status(422).json(errors);
+  }
+});
+
 module.exports = usersRouter;

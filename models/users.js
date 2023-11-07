@@ -51,4 +51,22 @@ const addUser = async (username, hashedPW, email) => {
   }
 };
 
-module.exports = { addUser };
+// Finds a user in the database by username
+const findUserByUsername = async username => {
+  const findUserQuery = `
+    SELECT * FROM users
+    WHERE username = ?
+    LIMIT 1
+  `;
+
+  const result = await dbConnection.promise().query(findUserQuery, [username]);
+
+  // If result set is empty, user by the username couldn't be found
+  if (result[0].length == 0) {
+    throw new Error("Unknown username");
+  }
+
+  return result[0]
+};
+
+module.exports = { addUser, findUserByUsername };
