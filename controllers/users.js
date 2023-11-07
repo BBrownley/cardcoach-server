@@ -76,7 +76,9 @@ usersRouter.post("/", async (req, res) => {
       const user = { username, id: results.insertId };
       const token = `bearer ${jwt.sign(user, process.env.JWT_SECRET)}`;
 
-      res.status(200).json({ id: user.id, token });
+      res.cookie("token", token, { httpOnly: true });
+
+      res.status(200).json({ id: user.id, username, email });
     } catch (err) {
       if (err.message.toLowerCase().includes("username")) {
         errors.username = err.message;
@@ -141,8 +143,16 @@ usersRouter.post("/login", async (req, res) => {
 
     const matchesPW = await bcrypt.compare(password, userHashedPW);
 
-    if (matchesPW) { // password hash matches actual password
+    if (matchesPW) {
+      // password hash matches actual password
       const { id, username, email } = userRow[0];
+
+      // sign JWT
+      const payload = { id, username };
+      const token = `bearer ${jwt.sign(payload, process.env.JWT_SECRET)}`;
+
+      // Set HTTP-only cookie
+      res.cookie("token", token, { httpOnly: true });
 
       return res.status(200).json({ id, username, email });
     }
