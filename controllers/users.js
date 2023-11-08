@@ -76,7 +76,7 @@ usersRouter.post("/", async (req, res) => {
       const user = { username, id: results.insertId };
       const token = `bearer ${jwt.sign(user, process.env.JWT_SECRET)}`;
 
-      res.cookie("token", token, { httpOnly: true });
+      res.cookie("token", token, { httpOnly: true, maxAge: 30 * 24 * 60 * 60 * 1000 }); // 30 days
 
       res.status(200).json({ id: user.id, username, email });
     } catch (err) {
@@ -95,6 +95,33 @@ usersRouter.post("/", async (req, res) => {
       res.status(err.statusCode || 500).json(errors);
     }
   }
+});
+
+/*
+
+GET /users/login
+
+Checks if there is a user logged in by checking the precense of an httpOnly cookie and
+validating that it is a user JWT
+
+*/
+
+usersRouter.get("/login", async (req, res) => {
+  const authHeader = req.cookies?.token;
+
+  if (authHeader) {
+    const token = authHeader.split(" ")[1];
+
+    try {
+      const userInfo = await jwt.verify(token, process.env.JWT_SECRET);
+
+      return res.status(200).json({ loggedIn: true, ...userInfo });
+    } catch (err) {
+      return res.status(422).json({ error: "invalid user token" });
+    }
+  }
+
+  return res.status(200).json({ loggedIn: false });
 });
 
 /*
@@ -152,7 +179,7 @@ usersRouter.post("/login", async (req, res) => {
       const token = `bearer ${jwt.sign(payload, process.env.JWT_SECRET)}`;
 
       // Set HTTP-only cookie
-      res.cookie("token", token, { httpOnly: true });
+      res.cookie("token", token, { httpOnly: true, maxAge: 30 * 24 * 60 * 60 * 1000 }); // 30 days
 
       return res.status(200).json({ id, username, email });
     }
