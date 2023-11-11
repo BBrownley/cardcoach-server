@@ -195,4 +195,18 @@ usersRouter.post("/login", async (req, res) => {
   }
 });
 
+/*
+
+DELETE /users/logout
+
+Handles logging out a user from the system
+Essentially just clears the httpOnly cookie that stores the jwt
+
+*/
+
+usersRouter.delete("/logout", async (req, res) => {
+  res.clearCookie("token");
+  return res.status(200).end();
+});
+
 module.exports = usersRouter;
