@@ -12,7 +12,7 @@ app.use(bodyParser.json());
 // since application will use httpOnly cookies, cors requires custom options:
 const corsConfig = {
   origin: "http://localhost:3000", // allows the access of server resources from this origin
-  credentials: true                // allows user sessions to be maintained
+  credentials: true // allows user sessions to be maintained
 };
 
 app.use(cors(corsConfig));
@@ -25,8 +25,10 @@ app.use(function(req, res, next) {
 });
 
 const usersRouter = require("./controllers/users");
+const setsRouter = require("./controllers/sets");
 
 app.use("/users", usersRouter);
+app.use("/sets", setsRouter);
 
 app.get("/", (req, res) => {
   res.json("hello from the server side!");

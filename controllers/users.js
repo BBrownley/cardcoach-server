@@ -78,7 +78,7 @@ usersRouter.post("/", async (req, res) => {
 
       res.cookie("token", token, { httpOnly: true, maxAge: 30 * 24 * 60 * 60 * 1000 }); // 30 days
 
-      res.status(200).json({ id: user.id, username, email });
+      res.status(200).json({ id: user.id, username });
     } catch (err) {
       if (err.message.toLowerCase().includes("username")) {
         errors.username = err.message;
