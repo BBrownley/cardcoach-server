@@ -25,10 +25,13 @@ if unsuccessful, rolls back any database operations made during this transaction
 
 */
 setsRouter.post("/", async (req, res, next) => {
+  // console.log(req);
   const payload = req.body;
   const userJWT = req.cookies.token.split(" ")[1];
 
-  // 1) Validate - valid user JWT
+  // console.log(userJWT);
+
+  // // 1) Validate - valid user JWT
 
   let decodedUser;
 
@@ -40,9 +43,9 @@ setsRouter.post("/", async (req, res, next) => {
       .json({ error: "Unable to decode jsonwebtoken - token may be invalid or expired" });
   }
 
-  // Set insertion
+  // // Set insertion
 
-  // 2.1) Validate - title fields are not empty, flash card fields filled in
+  // // 2.1) Validate - title fields are not empty, flash card fields filled in
 
   const setTitle = payload.title;
   const setDesc = payload.description;
@@ -65,7 +68,7 @@ setsRouter.post("/", async (req, res, next) => {
     return res.status(422).json({ error: err.message });
   }
 
-  // 2.2) Begin database transaction, insert sets and cards
+  // // 2.2) Begin database transaction, insert sets and cards
 
   try {
     await setsModel.createSet(setTitle, setDesc, cards, decodedUser);
