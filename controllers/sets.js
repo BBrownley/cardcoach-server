@@ -25,9 +25,15 @@ if unsuccessful, rolls back any database operations made during this transaction
 
 */
 setsRouter.post("/", async (req, res, next) => {
-  // console.log(req);
   const payload = req.body;
-  const userJWT = req.cookies.token.split(" ")[1];
+
+  let userJWT;
+
+  try {
+    userJWT = req.cookies.token.split(" ")[1];
+  } catch (e) {
+    return res.status(422).json({ error: "jsonwebtoken is missing" });
+  }
 
   // console.log(userJWT);
 
@@ -45,7 +51,8 @@ setsRouter.post("/", async (req, res, next) => {
 
   // // Set insertion
 
-  // // 2.1) Validate - title fields are not empty, flash card fields filled in
+  // 2.1) Validate - title fields are not empty, flash card fields filled in,
+  // at least one flash card present
 
   const setTitle = payload.title;
   const setDesc = payload.description;
@@ -53,6 +60,10 @@ setsRouter.post("/", async (req, res, next) => {
 
   if (setTitle.trim("").length === 0) {
     return res.status(422).json({ error: "Set must be given a title" });
+  }
+
+  if (cards.length === 0) {
+    return res.status(422).json({ error: "Set must contain at least one card" });
   }
 
   try {
