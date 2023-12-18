@@ -91,4 +91,39 @@ setsRouter.post("/", async (req, res, next) => {
   return res.status(200).end();
 });
 
+/*
+
+GET /sets
+
+Gets all flashcard sets belonging to the current user
+Makes calls to the sets model to carry out database operations.
+
+if successful, returns all sets belonging to the user
+if unsuccessful, returns a server error
+
+*/
+setsRouter.get("/", async (req, res, next) => {
+  //TODO: create user auth middleware for beginning of requests
+
+  const authHeader = req.cookies?.token;
+  let userInfo;
+
+  if (authHeader) {
+    const token = authHeader.split(" ")[1];
+
+    try {
+      userInfo = await jwt.verify(token, process.env.JWT_SECRET);
+    } catch (err) {
+      console.error("An unexpected error occurred");
+    }
+  }
+
+  try {
+    const userSets = await setsModel.getUserSets(userInfo.id);
+    return res.status(200).json({ userSets });
+  } catch (err) {
+    return res.status(400).json({ error: "Unable to fetch user flash card sets" });
+  }
+});
+
 module.exports = setsRouter;

@@ -82,4 +82,25 @@ const createSet = async (title, desc, cards, decodedUser) => {
   }
 };
 
-module.exports = { createSet };
+const getUserSets = async userId => {
+  const query = `
+    SELECT * FROM published_sets
+    WHERE author_id = ?
+  `;
+
+  const result = await dbConnection.promise().query(query, [userId]);
+
+  // shape data for frontend to consume properly
+  const sets = result[0].map(set => {
+    return {
+      title: set.name,
+      description: set.description,
+      totalTerms: 0, // TODO: write another  query to get # of terms in set
+      mastered: 0
+    };
+  });
+
+  return sets;
+};
+
+module.exports = { createSet, getUserSets };
