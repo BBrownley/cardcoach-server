@@ -28,7 +28,7 @@ const supertest = require("supertest");
 const chai = require("chai");
 const { app } = require("../index");
 
-describe("sets controller route", () => {
+describe("POST /sets controller route", () => {
   it("should successfully process valid form data, given a valid JWT", async () => {
     const payload = {
       title: "myTitle",
@@ -143,5 +143,48 @@ describe("sets controller route", () => {
       .set("Cookie", `token=Bearer ${process.env.VALID_BEARER_TOKEN}`)
       .send(payload);
     chai.expect(response.status).to.equal(422);
+  });
+});
+
+describe("GET /sets controller route", () => {
+  it("when no sets belong to user, expect an empty array in response", async () => {
+    // test DB contains user with no sets belonging to it with JWT OKEN_NO_SETS_ACC
+
+    const response = await supertest(app)
+      .get("/sets")
+      .set("Cookie", `token=Bearer ${process.env.TOKEN_NO_SETS_ACC}`);
+
+    chai.expect(response.status).to.equal(200);
+    chai.expect(response._body.userSets).to.have.lengthOf(0);
+  });
+
+  it("when one sets belong to user, expect an array of length 1 in response", async () => {
+    // test DB contains user with no sets belonging to it with JWT OKEN_NO_SETS_ACC
+
+    const response = await supertest(app)
+      .get("/sets")
+      .set("Cookie", `token=Bearer ${process.env.TOKEN_ONE_SET_ACC}`);
+
+    chai.expect(response.status).to.equal(200);
+    chai.expect(response._body.userSets).to.have.lengthOf(1);
+  });
+
+  it("when more than one set belongs to user, expect an array of x length in response", async () => {
+    // test DB contains user with no sets belonging to it with JWT OKEN_NO_SETS_ACC
+
+    const response = await supertest(app)
+      .get("/sets")
+      .set("Cookie", `token=Bearer ${process.env.TOKEN_THREE_SETS_ACC}`);
+
+    chai.expect(response.status).to.equal(200);
+    chai.expect(response._body.userSets).to.have.lengthOf(3);
+  });
+
+  it("when invalid JWT is passed in header, return unauthorized server error", async () => {
+    const response = await supertest(app)
+      .get("/sets")
+      .set("Cookie", `token=Bearer blahblahblah`);
+
+    chai.expect(response.status).to.equal(401);
   });
 });

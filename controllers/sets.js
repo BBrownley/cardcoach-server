@@ -108,14 +108,24 @@ setsRouter.get("/", async (req, res, next) => {
   const authHeader = req.cookies?.token;
   let userInfo;
 
+  console.log(authHeader);
+
   if (authHeader) {
     const token = authHeader.split(" ")[1];
 
     try {
       userInfo = await jwt.verify(token, process.env.JWT_SECRET);
     } catch (err) {
-      console.error("An unexpected error occurred");
+      return res.status(401).json({
+        error: "Unauthorized",
+        message: "Invalid or missing JWT"
+      });
     }
+  } else {
+    return res.status(401).json({
+      error: "Unauthorized",
+      message: "Invalid or missing JWT"
+    });
   }
 
   try {
