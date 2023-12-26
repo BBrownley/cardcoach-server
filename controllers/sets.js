@@ -5,6 +5,7 @@ Controller file for flash card sets
 */
 
 require("dotenv").config();
+const userAuth = require("../middleware/userAuth");
 
 // const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
@@ -24,30 +25,9 @@ if successful, returns a server OK status
 if unsuccessful, rolls back any database operations made during this transaction and returns a server error
 
 */
-setsRouter.post("/", async (req, res, next) => {
+setsRouter.post("/", [userAuth.userDecode], async (req, res, next) => {
   const payload = req.body;
-
-  let userJWT;
-
-  try {
-    userJWT = req.cookies.token.split(" ")[1];
-  } catch (e) {
-    return res.status(422).json({ error: "jsonwebtoken is missing" });
-  }
-
-  // console.log(userJWT);
-
-  // // 1) Validate - valid user JWT
-
-  let decodedUser;
-
-  try {
-    decodedUser = jwt.verify(userJWT, process.env.JWT_SECRET);
-  } catch (e) {
-    return res
-      .status(422)
-      .json({ error: "Unable to decode jsonwebtoken - token may be invalid or expired" });
-  }
+  const decodedUser = req.decodedUser;
 
   // // Set insertion
 
@@ -102,31 +82,10 @@ if successful, returns all sets belonging to the user
 if unsuccessful, returns a server error
 
 */
-setsRouter.get("/", async (req, res, next) => {
+setsRouter.get("/", [userAuth.userDecode], async (req, res, next) => {
   //TODO: create user auth middleware for beginning of requests
 
-  const authHeader = req.cookies?.token;
-  let userInfo;
-
-  console.log(authHeader);
-
-  if (authHeader) {
-    const token = authHeader.split(" ")[1];
-
-    try {
-      userInfo = await jwt.verify(token, process.env.JWT_SECRET);
-    } catch (err) {
-      return res.status(401).json({
-        error: "Unauthorized",
-        message: "Invalid or missing JWT"
-      });
-    }
-  } else {
-    return res.status(401).json({
-      error: "Unauthorized",
-      message: "Invalid or missing JWT"
-    });
-  }
+  const userInfo = req.decodedUser;
 
   try {
     const userSets = await setsModel.getUserSets(userInfo.id);
