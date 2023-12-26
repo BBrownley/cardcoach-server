@@ -45,7 +45,7 @@ describe("POST /sets controller route", () => {
     chai.expect(response.status).to.equal(200);
   });
 
-  it("Missing httpOnly cookie (token) returns a 422 error", async () => {
+  it("Missing httpOnly cookie (token) returns a 401 error", async () => {
     const payload = {
       title: "myTitle",
       description: "desc",
@@ -55,10 +55,10 @@ describe("POST /sets controller route", () => {
     const response = await supertest(app)
       .post("/sets")
       .send(payload);
-    chai.expect(response.status).to.equal(422);
+    chai.expect(response.status).to.equal(401);
   });
 
-  it("Invalid httpOnly cookie (token) returns a 422 error", async () => {
+  it("Invalid httpOnly cookie (token) returns a 401 error", async () => {
     const payload = {
       title: "myTitle",
       description: "desc",
@@ -69,7 +69,7 @@ describe("POST /sets controller route", () => {
       .post("/sets")
       .set("Cookie", `token=Bearer blahblahblahimahacker`)
       .send(payload);
-    chai.expect(response.status).to.equal(422);
+    chai.expect(response.status).to.equal(401);
   });
 
   it("Missing title returns a 422 error", async () => {
