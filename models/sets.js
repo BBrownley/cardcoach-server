@@ -103,4 +103,66 @@ const getUserSets = async userId => {
   return sets;
 };
 
-module.exports = { createSet, getUserSets };
+/*
+
+Queries the published_cards table, and returns all cards with specified set_id
+Joins with published_sets table to include set info in the return object:
+
+{
+  cards: [
+    {term: string, definition: string}
+  ],
+  setTitle: string,
+  description: string
+}
+
+*/
+const getUserSet = async (setId, userId) => {
+  console.log("hey");
+  const query = `
+    SELECT term, definition, 
+    published_sets.name AS set_title, 
+    published_sets.description AS set_description 
+    FROM published_sets
+    JOIN published_cards ON published_cards.set_id = published_sets.id
+    WHERE author_id = ? AND set_id = ?
+  `;
+
+  try {
+    const result = await dbConnection.promise().query(query, [userId, setId]);
+    const data = result[0];
+
+    // transform data, move title/desc properties from card data and put terms/defs into its own obj property
+
+    // Edge case: set contains no cards
+    if (data.length === 0) {
+      throw new Error(`Requested set ${setId} contains no cards`);
+    }
+
+    // grab set title and desc from first card
+    const setTitle = data[0].set_title;
+    const setDesc = data[0].set_description;
+
+    // map through card data, leaving behind only the terms/defs
+    const setCards = data.map(card => {
+      return { term: card.term, definition: card.definition };
+    });
+
+    return { setTitle, setDesc, setCards };
+
+    // const sets = result[0].map(set => {
+    //   return {
+    //     title: set.name,
+    //     description: set.description,
+    //     totalTerms: 0, // TODO: write another  query to get # of terms in set
+    //     mastered: 0
+    //   };
+    // });
+  } catch (err) {
+    throw new Error(err.message || "Error occurred while getting set");
+  }
+
+  // return sets;
+};
+
+module.exports = { createSet, getUserSets, getUserSet };

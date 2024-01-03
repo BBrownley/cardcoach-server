@@ -73,6 +73,37 @@ setsRouter.post("/", [userAuth.userDecode], async (req, res, next) => {
 
 /*
 
+GET /sets/:id
+
+Returns an array of cards to the client that's associated with set id
+
+if successful, returns an array of cards
+if unsuccessful, returns a server error
+
+*/
+
+setsRouter.get("/:id", [userAuth.userDecode], async (req, res, next) => {
+  const userInfo = req.decodedUser;
+  const requestedSetId = req.params["id"];
+
+  try {
+    const set = await setsModel.getUserSet(requestedSetId, userInfo.id);
+    console.log(set);
+    return res.status(200).json(set);
+  } catch (err) {
+    return res.status(400).json({ error: `Unable to fetch user flash card set ${requestedSetId}` });
+  }
+
+  // try {
+  //   const userSets = await setsModel.getUserSets(userInfo.id);
+  //   return res.status(200).json({ userSets });
+  // } catch (err) {
+  //   return res.status(400).json({ error: "Unable to fetch user flash card sets" });
+  // }
+});
+
+/*
+
 GET /sets
 
 Gets all flashcard sets belonging to the current user
@@ -83,8 +114,6 @@ if unsuccessful, returns a server error
 
 */
 setsRouter.get("/", [userAuth.userDecode], async (req, res, next) => {
-  //TODO: create user auth middleware for beginning of requests
-
   const userInfo = req.decodedUser;
 
   try {

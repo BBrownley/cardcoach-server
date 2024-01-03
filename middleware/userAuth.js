@@ -28,4 +28,3 @@ const userDecode = async (req, res, next) => {
 };
 
 module.exports = { userDecode };
-
