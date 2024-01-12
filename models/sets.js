@@ -94,6 +94,7 @@ const getUserSets = async userId => {
   const sets = result[0].map(set => {
     return {
       title: set.name,
+      setId: set.id,
       description: set.description,
       totalTerms: 0, // TODO: write another  query to get # of terms in set
       mastered: 0
@@ -116,27 +117,48 @@ Joins with published_sets table to include set info in the return object:
   description: string
 }
 
+two different errors can arise from calling this function:
+
+401 unauthorized:
+  - the user is attempting to access a set they don't own
+  - after querying the set, if it contains data, check author_id field and compare it to userId param
+
+404 not found:
+  - the user is attempting to access a set that doesn't exist, or is empty
+  - determined by an empty query result
+
 */
 const getUserSet = async (setId, userId) => {
-  console.log("hey");
+
   const query = `
-    SELECT term, definition, 
+    SELECT term, definition, author_id, 
     published_sets.name AS set_title, 
     published_sets.description AS set_description 
     FROM published_sets
     JOIN published_cards ON published_cards.set_id = published_sets.id
-    WHERE author_id = ? AND set_id = ?
-  `;
+    WHERE set_id = ?
+  `
 
-  try {
-    const result = await dbConnection.promise().query(query, [userId, setId]);
+    const result = await dbConnection.promise().query(query, [setId]);
     const data = result[0];
 
     // transform data, move title/desc properties from card data and put terms/defs into its own obj property
 
-    // Edge case: set contains no cards
+    // Edge case: set does not exist or is empty
     if (data.length === 0) {
-      throw new Error(`Requested set ${setId} contains no cards`);
+      const error = new Error();
+      error.message = `404 - Not found|The flash card set you requested does not exist - please go back and try looking for it again`
+      error.status = 404;
+      throw error
+    }
+
+    // check set ownership, and compare to the id of the requester
+    const setAuthorId = data[0].author_id
+    
+    if (setAuthorId !== userId) { // userId -> requester
+      const error = new Error(`Requested set ${setId} doesn't belong to the requesting user`);
+      error.status = 401;
+      throw error
     }
 
     // grab set title and desc from first card
@@ -149,18 +171,6 @@ const getUserSet = async (setId, userId) => {
     });
 
     return { setTitle, setDesc, setCards };
-
-    // const sets = result[0].map(set => {
-    //   return {
-    //     title: set.name,
-    //     description: set.description,
-    //     totalTerms: 0, // TODO: write another  query to get # of terms in set
-    //     mastered: 0
-    //   };
-    // });
-  } catch (err) {
-    throw new Error(err.message || "Error occurred while getting set");
-  }
 
   // return sets;
 };

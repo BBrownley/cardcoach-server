@@ -30,4 +30,11 @@ const setsRouter = require("./controllers/sets");
 app.use("/users", usersRouter);
 app.use("/sets", setsRouter);
 
+// const errorHandler = (err, req, res, next) => {
+//   console.log(err.message)
+//   res.json({message: err.message});
+// };
+
+// app.use(errorHandler);
+
 module.exports = { app };

@@ -91,7 +91,7 @@ setsRouter.get("/:id", [userAuth.userDecode], async (req, res, next) => {
     console.log(set);
     return res.status(200).json(set);
   } catch (err) {
-    return res.status(400).json({ error: `Unable to fetch user flash card set ${requestedSetId}` });
+    return res.status(err.status).json({ error: err.message });
   }
 
   // try {
