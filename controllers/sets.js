@@ -14,6 +14,8 @@ const setsRouter = require("express").Router();
 
 const setsModel = require("../models/sets");
 
+const _ = require("lodash");
+
 /*
 
 POST /sets
@@ -47,7 +49,7 @@ setsRouter.post("/", [userAuth.userDecode], async (req, res, next) => {
   }
 
   try {
-    cards.forEach(card => {
+    cards.forEach((card) => {
       const cardTerm = card.term;
       const cardDefinition = card.definition;
 
@@ -93,13 +95,6 @@ setsRouter.get("/:id", [userAuth.userDecode], async (req, res, next) => {
   } catch (err) {
     return res.status(err.status).json({ error: err.message });
   }
-
-  // try {
-  //   const userSets = await setsModel.getUserSets(userInfo.id);
-  //   return res.status(200).json({ userSets });
-  // } catch (err) {
-  //   return res.status(400).json({ error: "Unable to fetch user flash card sets" });
-  // }
 });
 
 /*
@@ -122,6 +117,112 @@ setsRouter.get("/", [userAuth.userDecode], async (req, res, next) => {
   } catch (err) {
     return res.status(400).json({ error: "Unable to fetch user flash card sets" });
   }
+});
+
+/*
+
+PUT /sets/:id
+
+Updates a set with new info
+
+*/
+
+/*
+
+initial state	edited state
+
+{id: 1, term: "a"}	{id: 1, term: "a"}
+{id: 2, term: "b"}	{id: 2, term: "c"} (term updated)
+{id: 3, term: "c"}	{id: 4, term: "d"} (card added)
+
+		note: card with id: 3 was deleted
+
+we want to compare the before and after states to know which cards in the database should be:
+
+- altered	   [{id: 2, term: "c"}]
+- added       [{id: 4, term: "d"}]
+- removed   [3]
+
+----
+
+
+How to determine which of the 3 categories each card falls into?
+
+Altered and removed: 
+
+Iterate through initialState. 
+
+e.g. n = 1
+
+cardFromInitial = initial[n]  // {id: 2, term: "b"}
+cardFromEdited = edited.find(card => card.id === initial[n].id)  // {id: 2, term: "c"}
+
+if (cardFromEdited === null):
+  removed.push(cardFromInitial[n].id)
+
+if _.isEqual(cardFromInitial, cardFromEdited) === false:
+  altered.push(cardFromEdited)
+
+...otherwise there were no changes
+
+
+Added:
+
+Iterate through edited state, look for entries (objects) with "new: true"
+
+*/
+
+setsRouter.put("/:id", [userAuth.userDecode], async (req, res, next) => {
+  const payload = req.body;
+
+  const beforeCardState = payload.beforeCards;
+  const updatedCardState = payload.updatedCards;
+
+  const removedCardIDs = [];
+  const alteredCards = [];
+
+  let addedCards;
+
+  beforeCardState.forEach((cardFromBefore) => {
+    console.log("Comparing...");
+    console.log(cardFromBefore);
+
+    // look for card in updated state with matching ID
+    const cardFromEdited = updatedCardState.find(
+      (cardFromAfter) => cardFromBefore.id === cardFromAfter.id
+    );
+
+    console.log(cardFromEdited);
+    console.log("=====");
+
+    if (cardFromEdited === undefined) {
+      // card ID missing from updated state, so it was removed
+      removedCardIDs.push(cardFromBefore.id);
+    } else if (_.isEqual(cardFromBefore, cardFromEdited) === false) {
+      // card with matching ID found, but changes were made
+      alteredCards.push(cardFromEdited);
+    }
+  });
+
+  addedCards = updatedCardState.filter((c) => c.new);
+
+  removedCardIDs.forEach((id) => {
+    console.log(id);
+  });
+
+  console.log("---");
+
+  alteredCards.forEach((c) => {
+    console.log(c);
+  });
+
+  console.log("---");
+
+  addedCards.forEach((c) => {
+    console.log(c);
+  });
+
+  return res.status(200).send("Request successful"); // Note: need to send something back in PUT req or else it'll hang
 });
 
 module.exports = setsRouter;

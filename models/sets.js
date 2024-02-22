@@ -131,12 +131,19 @@ two different errors can arise from calling this function:
 const getUserSet = async (setId, userId) => {
 
   const query = `
-    SELECT term, definition, author_id, 
-    published_sets.name AS set_title, 
-    published_sets.description AS set_description 
-    FROM published_sets
-    JOIN published_cards ON published_cards.set_id = published_sets.id
-    WHERE set_id = ?
+    SELECT 
+      term, 
+      definition, 
+      author_id, 
+      published_sets.name AS set_title, 
+      published_sets.description AS set_description,
+      published_cards.id AS card_id
+    FROM 
+      published_sets
+    JOIN 
+      published_cards ON published_cards.set_id = published_sets.id
+    WHERE 
+      set_id = ?
   `
 
     const result = await dbConnection.promise().query(query, [setId]);
@@ -156,7 +163,7 @@ const getUserSet = async (setId, userId) => {
     const setAuthorId = data[0].author_id
     
     if (setAuthorId !== userId) { // userId -> requester
-      const error = new Error(`Requested set ${setId} doesn't belong to the requesting user`);
+      const error = new Error(`401 - Unauthorized|Requested set ${setId} doesn't belong to the requesting user`);
       error.status = 401;
       throw error
     }
@@ -167,7 +174,7 @@ const getUserSet = async (setId, userId) => {
 
     // map through card data, leaving behind only the terms/defs
     const setCards = data.map(card => {
-      return { term: card.term, definition: card.definition };
+      return { term: card.term, definition: card.definition, id: card.card_id };
     });
 
     return { setTitle, setDesc, setCards };
