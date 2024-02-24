@@ -139,9 +139,9 @@ initial state	edited state
 
 we want to compare the before and after states to know which cards in the database should be:
 
-- altered	   [{id: 2, term: "c"}]
-- added       [{id: 4, term: "d"}]
-- removed   [3]
+- altered	  [{id: Integer, term: String, definition: String}]
+- added     [{term: String, definition: String}]
+- removed   int[]
 
 ----
 
@@ -174,6 +174,8 @@ Iterate through edited state, look for entries (objects) with "new: true"
 
 setsRouter.put("/:id", [userAuth.userDecode], async (req, res, next) => {
   const payload = req.body;
+  const setId = req.params.id;
+  const userId = req.decodedUser.id;
 
   const beforeCardState = payload.beforeCards;
   const updatedCardState = payload.updatedCards;
@@ -184,16 +186,10 @@ setsRouter.put("/:id", [userAuth.userDecode], async (req, res, next) => {
   let addedCards;
 
   beforeCardState.forEach((cardFromBefore) => {
-    console.log("Comparing...");
-    console.log(cardFromBefore);
-
     // look for card in updated state with matching ID
     const cardFromEdited = updatedCardState.find(
       (cardFromAfter) => cardFromBefore.id === cardFromAfter.id
     );
-
-    console.log(cardFromEdited);
-    console.log("=====");
 
     if (cardFromEdited === undefined) {
       // card ID missing from updated state, so it was removed
@@ -204,25 +200,35 @@ setsRouter.put("/:id", [userAuth.userDecode], async (req, res, next) => {
     }
   });
 
-  addedCards = updatedCardState.filter((c) => c.new);
+  addedCards = updatedCardState
+    .filter((c) => c.new)
+    .map((newCard) => {
+      return { term: newCard.term, definition: newCard.definition };
+    });
 
-  removedCardIDs.forEach((id) => {
-    console.log(id);
-  });
-
-  console.log("---");
+  // addedCards.forEach((c) => {
+  //   console.log(c);
+  // });
 
   alteredCards.forEach((c) => {
     console.log(c);
   });
 
-  console.log("---");
+  try {
+    await setsModel.updateSet(setId, userId, addedCards, alteredCards, removedCardIDs);
+    return res.status(200).send("Request successful"); // Note: need to send something back in PUT req or else it'll hang
+  } catch (err) {
+    console.error(err);
+    return res.status(err.status).json({ error: err.message });
+  }
 
-  addedCards.forEach((c) => {
-    console.log(c);
-  });
+  // removedCardIDs.forEach((id) => {
+  //   console.log(id);
+  // });
 
-  return res.status(200).send("Request successful"); // Note: need to send something back in PUT req or else it'll hang
+  // console.log("---");
+
+  // console.log("---");
 });
 
 module.exports = setsRouter;
