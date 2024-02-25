@@ -27,59 +27,43 @@ const createSet = async (title, desc, cards, decodedUser) => {
   try {
     // using a transaction will allow us to roll back any changes made to published_sets if the
     // addCardsQuery fails somehow. to do this, we must acquire a connection from the pool
-    dbConnection.getConnection((err, connection) => {
-      // Start the transaction
-      connection.beginTransaction((err) => {
-        if (err) throw err;
 
-        connection.query(
-          addSetQuery,
-          [null, title, desc, decodedUser.id, false, 0],
-          (err, results1) => {
-            if (err) {
-              // Rollback the transaction in case of an error
-              return connection.rollback(() => {
-                throw err;
-              });
-            }
+    connection = await dbConnection.promise().getConnection();
 
-            // set insert successful, get insert id to link with cards in published_cards table
-            const setInsertId = results1.insertId;
+    await connection.query("START TRANSACTION");
 
-            // transform card data into form corresponding to table columns
-            const cardInsertData = cards.map((card) => {
-              return [null, setInsertId, card.term, card.definition, 0, 0, null];
-            });
+    const setResult = await connection.query(addSetQuery, [
+      null,
+      title,
+      desc,
+      decodedUser.id,
+      false,
+      0,
+    ]);
 
-            connection.query(addCardsQuery, [cardInsertData], (err, results2) => {
-              if (err) {
-                // Rollback the transaction in case of an error
-                return connection.rollback(() => {
-                  throw err;
-                });
-              }
+    const setInsertId = setResult[0].insertId;
 
-              // Commit the transaction if all queries are successful
-              connection.commit((err) => {
-                if (err) {
-                  // Rollback the transaction in case of an error during commit
-                  return connection.rollback(() => {
-                    throw err;
-                  });
-                }
-
-                // Release the connection back to the pool
-                connection.release();
-                console.log("Transaction completed successfully.");
-              });
-            });
-          }
-        );
-      });
+    // transform card data into form corresponding to table columns
+    const cardInsertData = cards.map((card) => {
+      return [null, setInsertId, card.term, card.definition, 0, 0, null];
     });
+
+    await connection.query(addCardsQuery, [cardInsertData]);
+
+    await connection.commit();
+    await connection.release();
+
+    return setInsertId;
   } catch (err) {
-    console.error(`Error occurred while creating set: ${err.message}`, err);
-    throw new Error("Error occurred while creating set");
+    console.error(e);
+    await connection.query("ROLLBACK");
+    await connection.release();
+
+    const error = new Error(
+      `500 - Internal Server Error|An unexpected error occured while creating set`
+    );
+    error.status = 500;
+    throw error;
   }
 };
 
