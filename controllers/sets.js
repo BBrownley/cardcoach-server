@@ -64,13 +64,12 @@ setsRouter.post("/", [userAuth.userDecode], async (req, res, next) => {
   // // 2.2) Begin database transaction, insert sets and cards
 
   try {
-    await setsModel.createSet(setTitle, setDesc, cards, decodedUser);
+    const setInsertId = await setsModel.createSet(setTitle, setDesc, cards, decodedUser);
+    return res.status(200).json({ setInsertId });
   } catch (err) {
     // Return server error if insertion unsuccessful, transaction rolled back
     return res.status(422).json({ error: err.message });
   }
-
-  return res.status(200).end();
 });
 
 /*
@@ -215,8 +214,14 @@ setsRouter.put("/:id", [userAuth.userDecode], async (req, res, next) => {
   });
 
   try {
-    await setsModel.updateSet(setId, userId, addedCards, alteredCards, removedCardIDs);
-    return res.status(200).send("Request successful"); // Note: need to send something back in PUT req or else it'll hang
+    const updatedSetResult = await setsModel.updateSet(
+      setId,
+      userId,
+      addedCards,
+      alteredCards,
+      removedCardIDs
+    );
+    return res.status(200).send(updatedSetResult); // Note: need to send something back in PUT req or else it'll hang
   } catch (err) {
     console.error(err);
     return res.status(err.status).json({ error: err.message });

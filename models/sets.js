@@ -267,7 +267,24 @@ const updateSet = async (setId, userId, addedCards, alteredCards, removedCardIDs
     }
 
     await connection.commit();
+
+    // set update successful, return the contents of the updated set
+    const updatedSetQuery = `
+      SELECT 
+        term, 
+        definition
+      FROM 
+        published_cards
+      WHERE 
+        set_id = ?
+    `;
+
+    const updatedSet = await connection.query(updatedSetQuery, [setId]);
+    const updatedSetResults = updatedSet[0];
+
     await connection.release();
+
+    return updatedSetResults;
   } catch (e) {
     console.error(e);
     await connection.query("ROLLBACK");
